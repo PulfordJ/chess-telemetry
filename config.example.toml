@@ -1,0 +1,45 @@
+# Chess telemetry configuration.
+# Copy this file to config.toml and fill in your usernames:
+#   cp config.example.toml config.toml
+# config.toml is git-ignored so your usernames stay local.
+
+[accounts]
+# Fill in your usernames. Leave empty ("") to skip a platform.
+lichess = ""
+chesscom = ""
+
+[engine]
+# Fixed node budget per position (~depth 20 equivalent). Higher = more accurate, slower.
+nodes = 1500000
+# More threads = faster but slightly nondeterministic evals (cached either way).
+threads = 4
+hash_mb = 256
+
+[analysis]
+# Most recent N games to analyze with the engine (metadata is fetched for all games).
+backfill_limit = 300
+# CPL thresholds (centipawns)
+inaccuracy_cpl = 50
+mistake_cpl = 100
+blunder_cpl = 300
+# Blunders/mistakes above this CPL get motif tagging
+motif_min_cpl = 200
+
+[report]
+# Headline recommendation window (most recent N analyzed games)
+window = 50
+# Minimum games before any conclusion is reported for a bucket
+min_games = 20
+# Exponential recency half-life, in games
+half_life = 25
+# Bootstrap resamples for confidence estimates
+bootstrap_draws = 1000
+# Rolling stability windows
+rolling_window = 30
+rolling_step = 10
+# Staleness warning if headline window spans more than this many days
+stale_days = 180
+# Ignore moves played from already-lost positions (centipawns, user's view) when
+# ranking study focus — what you do at -3 isn't the leak that lost the game.
+# ACPL is always computed over all moves, to stay comparable with other sites.
+min_eval = -300
