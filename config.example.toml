@@ -5,6 +5,8 @@
 
 [accounts]
 # Fill in your usernames. Leave empty ("") to skip a platform.
+# Multiple accounts on the same platform are supported as a list:
+#   lichess = ["mainaccount", "altaccount"]
 lichess = ""
 chesscom = ""
 

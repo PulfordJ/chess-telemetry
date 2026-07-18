@@ -9,7 +9,9 @@ confidence and stability tracking over time.
 
 1. Install Nix — see [PulfordJ/install-nix](https://github.com/PulfordJ/install-nix).
 2. `cp config.example.toml config.toml` and put your usernames in `[accounts]`
-   (`config.toml` is git-ignored so your details stay local).
+   (`config.toml` is git-ignored so your details stay local). Each platform
+   accepts either a single username or a list, e.g.
+   `lichess = ["mainaccount", "altaccount"]`, if you play from more than one.
 3. Optionally export `LICHESS_TOKEN` for faster fetching.
 
 ## Usage

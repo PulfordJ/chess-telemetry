@@ -29,21 +29,34 @@ def load_config(path: str) -> tuple[dict, Path]:
         return tomllib.load(f), p.parent
 
 
+def account_names(value) -> list[str]:
+    """Normalize an [accounts] entry to a list of usernames.
+
+    Accepts a single string (legacy), a list of strings, or None/"" (skip).
+    """
+    if not value:
+        return []
+    if isinstance(value, str):
+        value = [value]
+    return [v.strip() for v in value if v and v.strip()]
+
+
 def cmd_fetch(conn, cfg):
     accounts = cfg["accounts"]
     total = 0
     for platform, fetcher in (("lichess", lichess), ("chesscom", chesscom)):
-        username = accounts.get(platform, "").strip()
-        if not username:
+        usernames = account_names(accounts.get(platform))
+        if not usernames:
             console.print(f"[dim]{platform}: no username configured, skipping[/dim]")
             continue
-        console.print(f"{platform}: fetching games for [bold]{username}[/bold]…")
-        try:
-            new = fetcher.fetch(conn, username)
-            console.print(f"{platform}: [green]{new} new games[/green]")
-            total += new
-        except Exception as e:
-            console.print(f"[red]{platform}: fetch failed: {e}[/red]")
+        for username in usernames:
+            console.print(f"{platform}: fetching games for [bold]{username}[/bold]…")
+            try:
+                new = fetcher.fetch(conn, username)
+                console.print(f"{platform}: [green]{new} new games[/green]")
+                total += new
+            except Exception as e:
+                console.print(f"[red]{platform}: fetch failed for {username}: {e}[/red]")
     count = conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
     console.print(f"Done. {total} new games this run, {count} total in database.")
 
