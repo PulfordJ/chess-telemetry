@@ -71,7 +71,7 @@ and metric changes are cheap. `analyze` is safe to interrupt and resume.
 $ uv run chess-telemetry report
 
 ╭────────────────────────────── Chess Telemetry ───────────────────────────────╮
-│ Analyzed games: 358 total, headline window = most recent 50                  │
+│ Analyzed games: 382 total, headline window = most recent 50                  │
 │ Window span: 2024-08-22 → 2026-07-16 (693 days)                              │
 │ ⚠ window spans 693 days (> 180) — early games may not reflect current        │
 │ strength                                                                     │
@@ -141,12 +141,45 @@ Study-focus scoring ignores moves played from already-lost positions (worse than
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ Window                  ┃ ACPL ┃ Blunders/game ┃ Top phase  ┃ Top motif  ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-│ 2024-07-11 → 2025-03-05 │   47 │           0.7 │ middlegame │ hung_piece │
-│ 2024-09-29 → 2025-07-03 │   46 │           0.6 │ middlegame │ hung_piece │
-│ 2024-12-10 → 2025-08-26 │   45 │           0.7 │ middlegame │ hung_piece │
+│ 2023-05-06 → 2023-05-28 │   65 │           1.5 │ middlegame │ hung_piece │
+│ 2023-05-17 → 2023-06-12 │   60 │           1.2 │ middlegame │ hung_piece │
+│ 2023-05-23 → 2023-06-19 │   58 │           1.1 │ middlegame │ hung_piece │
+│ 2023-06-02 → 2023-06-21 │   54 │           1.1 │ middlegame │ hung_piece │
+│ 2023-06-12 → 2023-06-24 │   53 │           1.1 │ middlegame │ hung_piece │
+│ 2023-06-19 → 2023-06-27 │   53 │           1.0 │ endgame    │ hung_piece │
+│ 2023-06-21 → 2023-06-30 │   59 │           0.9 │ middlegame │ hung_piece │
+│ 2023-06-25 → 2023-07-03 │   59 │           0.9 │ middlegame │ hung_piece │
+│ 2023-06-28 → 2023-07-07 │   70 │           1.3 │ middlegame │ hung_piece │
+│ 2023-07-01 → 2023-07-11 │   69 │           1.5 │ middlegame │ hung_piece │
+│ 2023-07-04 → 2023-07-14 │   68 │           1.4 │ middlegame │ hung_piece │
+│ 2023-07-08 → 2023-07-18 │   54 │           1.1 │ middlegame │ hung_piece │
+│ 2023-07-11 → 2023-07-25 │   51 │           1.0 │ middlegame │ hung_piece │
+│ 2023-07-14 → 2023-08-01 │   48 │           0.9 │ middlegame │ hung_piece │
+│ 2023-07-18 → 2023-08-15 │   45 │           0.9 │ middlegame │ hung_piece │
+│ 2023-07-25 → 2023-09-06 │   44 │           0.9 │ middlegame │ hung_piece │
+│ 2023-08-01 → 2023-10-14 │   44 │           0.9 │ middlegame │ hung_piece │
+│ 2023-08-15 → 2023-10-21 │   42 │           0.7 │ middlegame │ hung_piece │
+│ 2023-09-08 → 2023-10-31 │   39 │           0.4 │ middlegame │ hung_piece │
+│ 2023-10-20 → 2023-11-16 │   39 │           0.5 │ middlegame │ hung_piece │
+│ 2023-10-21 → 2023-11-19 │   41 │           0.5 │ middlegame │ hung_piece │
+│ 2023-11-01 → 2023-11-28 │   54 │           0.7 │ middlegame │ hung_piece │
+│ 2023-11-16 → 2024-01-06 │   53 │           0.9 │ middlegame │ hung_piece │
+│ 2023-11-21 → 2024-01-21 │   64 │           1.2 │ middlegame │ hung_piece │
+│ 2023-12-05 → 2024-02-04 │   57 │           1.4 │ middlegame │ hung_piece │
+│ 2024-01-07 → 2024-03-02 │   63 │           1.5 │ middlegame │ hung_piece │
+│ 2024-01-23 → 2024-03-22 │   44 │           1.0 │ middlegame │ hung_piece │
+│ 2024-02-06 → 2024-04-01 │   35 │           0.5 │ middlegame │ hung_piece │
+│ 2024-03-02 → 2024-05-20 │   32 │           0.3 │ middlegame │ hung_piece │
+│ 2024-03-22 → 2024-06-24 │   37 │           0.5 │ middlegame │ other      │
+│ 2024-04-02 → 2024-07-30 │   44 │           0.9 │ middlegame │ hung_piece │
+│ 2024-05-21 → 2024-10-24 │   42 │           0.8 │ middlegame │ hung_piece │
+│ 2024-06-24 → 2025-02-13 │   45 │           0.8 │ middlegame │ hung_piece │
+│ 2024-08-08 → 2025-06-26 │   49 │           0.6 │ middlegame │ hung_piece │
+│ 2024-10-31 → 2025-07-10 │   47 │           0.7 │ middlegame │ hung_piece │
+│ 2025-02-18 → 2026-02-19 │   46 │           0.8 │ middlegame │ hung_piece │
 └─────────────────────────┴──────┴───────────────┴────────────┴────────────┘
-  Phase focus stability: middlegame in 32/33 windows
-  Motif focus stability: hung_piece in 31/33 windows
+  Phase focus stability: middlegame in 35/36 windows
+  Motif focus stability: hung_piece in 35/36 windows
 
 ╭──────────────────────────── Study recommendation ────────────────────────────╮
 │ • Middlegame decision-making is the leak: study annotated master games and   │
@@ -155,6 +188,10 @@ Study-focus scoring ignores moves played from already-lost positions (worse than
 │ pre-move blunder check (checks, captures, threats).                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
+
+`report` prints one stability row per rolling window with no truncation, so
+the table above (and the rest of this snippet) is a point-in-time capture —
+it will drift as you analyze more games and is illustrative only, not a spec.
 
 ## Metrics
 
