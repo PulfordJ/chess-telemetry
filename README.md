@@ -7,9 +7,10 @@ confidence and stability tracking over time.
 
 ## Setup
 
-1. `cp config.example.toml config.toml` and put your usernames in `[accounts]`
+1. Need Nix? See [PulfordJ/install-nix](https://github.com/PulfordJ/install-nix).
+2. `cp config.example.toml config.toml` and put your usernames in `[accounts]`
    (`config.toml` is git-ignored so your details stay local).
-2. Optionally export `LICHESS_TOKEN` for faster fetching.
+3. Optionally export `LICHESS_TOKEN` for faster fetching.
 
 ## Usage
 
