@@ -14,6 +14,16 @@ chesscom = ""
 # Safe to put here — config.toml is git-ignored. LICHESS_TOKEN env var wins if set.
 lichess_token = ""
 
+[repertoire]
+# Optional: the lines you actually play. When set, prep/suggest drop your
+# games that deviate from these at YOUR moves; opponent deviations are always
+# kept (e.g. games vs 1.Nf3 stay even if only 1.e4/1.d4 replies are listed).
+# Pass --all-lines to prep/suggest to disable. Empty lists = no filtering.
+#   white = ["1. c4"]
+#   black = ["1. e4 c5", "1. d4 d5"]
+white = []
+black = []
+
 [engine]
 # Fixed node budget per position (~depth 20 equivalent). Higher = more accurate, slower.
 nodes = 1500000

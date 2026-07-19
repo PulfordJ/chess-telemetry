@@ -5,8 +5,59 @@ Pure logic: the masters lookup is injected as a callable(board) -> dict | None
 """
 
 import io
+import re
 
 import chess.pgn
+
+
+def parse_line(text: str) -> list[str]:
+    """'1. e4 c5' / '1.e4' / '1...c5' -> SAN list without move numbers."""
+    return re.sub(r"\d+\.(?:\.\.)?", " ", text).split()
+
+
+def repertoire_from_config(cfg: dict) -> dict[str, list[list[str]]]:
+    rep = cfg.get("repertoire", {})
+    return {c: [parse_line(t) for t in rep.get(c, [])] for c in ("white", "black")}
+
+
+def matches_repertoire(sans, color: str, lines: list[list[str]]) -> bool:
+    """True when a game's opening conforms to the player's repertoire.
+
+    At the player's own moves, the game must follow one of the still-
+    consistent lines; at opponent moves the repertoire only branches — an
+    opponent move no line anticipates ends checking (the repertoire is
+    silent there, so the game is kept). Empty lines = no filtering.
+    """
+    if not lines:
+        return True
+    own_parity = 0 if color == "white" else 1
+    active = lines
+    for i, san in enumerate(sans):
+        if any(len(line) <= i for line in active):
+            return True  # some line fully matched; deeper moves are free
+        following = [line for line in active if line[i] == san]
+        if following:
+            active = following
+        elif i % 2 == own_parity:
+            return False  # the player deviated from every remaining line
+        else:
+            return True  # opponent played something no line anticipates
+    return True
+
+
+def leading_sans(pgn: str, limit: int) -> list[str]:
+    """The first `limit` SAN moves of a PGN (fewer if the game is shorter)."""
+    game = chess.pgn.read_game(io.StringIO(pgn))
+    if game is None:
+        return []
+    board = game.board()
+    sans = []
+    for move in game.mainline_moves():
+        sans.append(board.san(move))
+        board.push(move)
+        if len(sans) >= limit:
+            break
+    return sans
 
 
 def bucket_name(opening_name: str) -> str:

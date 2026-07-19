@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from . import db, explorer, openings
-from .suggest import DEFAULTS, _records
+from .suggest import DEFAULTS, _records, filter_repertoire
 
 
 def run_prep(conn, cfg: dict, args) -> None:
@@ -28,6 +28,7 @@ def run_prep(conn, cfg: dict, args) -> None:
     if not rows:
         console.print("[red]No games in the database — run `fetch` first.[/red]")
         return
+    rows = filter_repertoire(console, rows, cfg, args)
 
     with httpx.Client(timeout=30.0, headers=explorer.auth_headers()) as client:
         lookup = functools.partial(explorer.masters_lookup, conn, client)

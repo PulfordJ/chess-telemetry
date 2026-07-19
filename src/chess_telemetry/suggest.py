@@ -53,6 +53,7 @@ def run_suggest(conn, cfg: dict, args) -> None:
     if speeds:
         user_rows = [r for r in user_rows if r["speed"] in speeds]
         opp_rows = [r for r in opp_rows if r["speed"] in speeds]
+    user_rows = filter_repertoire(console, user_rows, cfg, args)
 
     with httpx.Client(timeout=30.0, headers=explorer.auth_headers()) as client:
         lookup = functools.partial(explorer.masters_lookup, conn, client)
@@ -92,6 +93,28 @@ def run_suggest(conn, cfg: dict, args) -> None:
         f"{user_skipped} of your games, {opp_skipped} of theirs.",
         title="How to read this", expand=False,
     ))
+
+
+def filter_repertoire(console, rows, cfg, args):
+    """Drop the user's games that deviate from the configured repertoire."""
+    if getattr(args, "all_lines", False):
+        return rows
+    rep = openings.repertoire_from_config(cfg)
+    if not any(rep.values()):
+        return rows
+    kept = []
+    for r in rows:
+        lines = rep[r["color"]]
+        limit = max((len(line) for line in lines), default=0)
+        if openings.matches_repertoire(
+            openings.leading_sans(r["pgn"], limit), r["color"], lines
+        ):
+            kept.append(r)
+    console.print(
+        f"[dim]Repertoire filter: {len(kept)} of {len(rows)} of your games "
+        "match config [repertoire] (--all-lines to disable).[/dim]"
+    )
+    return kept
 
 
 def _fetch_opponent(conn, console, platform, opponent, s, refresh):

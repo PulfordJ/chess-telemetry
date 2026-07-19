@@ -173,6 +173,37 @@ def test_move_tree_empty():
     assert openings.move_tree([], min_games=2)["n"] == 0
 
 
+def test_parse_line():
+    assert openings.parse_line("1. e4 c5") == ["e4", "c5"]
+    assert openings.parse_line("1.c4") == ["c4"]
+    assert openings.parse_line("1...c5") == ["c5"]
+    assert openings.parse_line("1. c4 e5 2. Nc3") == ["c4", "e5", "Nc3"]
+
+
+def test_matches_repertoire_white():
+    lines = [openings.parse_line("1. c4")]
+    assert openings.matches_repertoire(["c4", "e5", "g3"], "white", lines)
+    assert not openings.matches_repertoire(["e4", "e5"], "white", lines)
+    assert openings.matches_repertoire(["e4"], "white", [])  # no filter
+
+
+def test_matches_repertoire_black():
+    lines = [openings.parse_line("1. e4 c5"), openings.parse_line("1. d4 d5")]
+    assert openings.matches_repertoire(["e4", "c5", "Nf3"], "black", lines)
+    assert not openings.matches_repertoire(["e4", "e6"], "black", lines)
+    assert openings.matches_repertoire(["d4", "d5"], "black", lines)
+    # Repertoire is silent on 1.Nf3 — the game is kept.
+    assert openings.matches_repertoire(["Nf3", "d5"], "black", lines)
+
+
+def test_matches_repertoire_deep_lines():
+    lines = [openings.parse_line("1. c4 e5 2. Nc3")]
+    assert openings.matches_repertoire(["c4", "e5", "Nc3", "Nf6"], "white", lines)
+    assert not openings.matches_repertoire(["c4", "e5", "g3"], "white", lines)
+    # Opponent deviates from the line at move 1 — repertoire is silent.
+    assert openings.matches_repertoire(["c4", "Nf6", "g3"], "white", lines)
+
+
 def test_notable_lines_significance_and_dedup():
     # 20 games of 1.e4: 10 wins in e5 lines (strong), 10 losses in c5 lines
     # (weak). "1.e4" overall is dead even — not notable; each child is.

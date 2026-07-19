@@ -252,6 +252,10 @@ def main():
     p_suggest.add_argument(
         "--refresh", action="store_true", help="Re-fetch the opponent's games"
     )
+    p_suggest.add_argument(
+        "--all-lines", action="store_true",
+        help="Ignore the config [repertoire] filter",
+    )
     p_prep = sub.add_parser(
         "prep", help="Rank your own openings vs the masters baseline (prep targets)"
     )
@@ -261,6 +265,10 @@ def main():
     p_prep.add_argument(
         "--tree", action="store_true",
         help="Show the full move tree instead of only notable lines",
+    )
+    p_prep.add_argument(
+        "--all-lines", action="store_true",
+        help="Ignore the config [repertoire] filter",
     )
     args = parser.parse_args()
 
