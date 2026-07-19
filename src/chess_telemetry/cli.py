@@ -257,7 +257,17 @@ def main():
         help="Ignore the config [repertoire] filter",
     )
     p_prep = sub.add_parser(
-        "prep", help="Rank your own openings vs the masters baseline (prep targets)"
+        "prep", help="Rank openings vs the masters baseline (yours, or an opponent's)"
+    )
+    p_prep.add_argument(
+        "--opponent", help="Analyze this opponent's games instead of yours"
+    )
+    p_prep.add_argument(
+        "--platform", choices=["lichess", "chesscom"],
+        help="Platform the opponent plays on (required with --opponent)",
+    )
+    p_prep.add_argument(
+        "--refresh", action="store_true", help="Re-fetch the opponent's games"
     )
     p_prep.add_argument("--color", choices=["white", "black"], help="Only one color")
     p_prep.add_argument("--min-games", type=int, help="Minimum games per row")

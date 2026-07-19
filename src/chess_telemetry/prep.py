@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from . import db, explorer, openings
-from .suggest import DEFAULTS, _records, filter_repertoire
+from .suggest import DEFAULTS, _fetch_opponent, _records, filter_repertoire
 
 
 def run_prep(conn, cfg: dict, args) -> None:
@@ -22,41 +22,61 @@ def run_prep(conn, cfg: dict, args) -> None:
     min_games = args.min_games or s["min_games"]
     speeds = [x.strip() for x in args.speed.split(",")] if args.speed else None
 
-    rows = db.user_game_rows(conn)
+    opponent = args.opponent.lower() if args.opponent else None
+    if opponent:
+        if not args.platform:
+            console.print("[red]--opponent requires --platform.[/red]")
+            return
+        _fetch_opponent(conn, console, args.platform, opponent, s, args.refresh)
+        rows = db.opponent_game_rows(conn, args.platform, opponent)
+        if not rows:
+            console.print(
+                f"[red]No games found for {opponent} on {args.platform}.[/red]"
+            )
+            return
+    else:
+        rows = db.user_game_rows(conn)
+        if not rows:
+            console.print("[red]No games in the database — run `fetch` first.[/red]")
+            return
     if speeds:
         rows = [r for r in rows if r["speed"] in speeds]
-    if not rows:
-        console.print("[red]No games in the database — run `fetch` first.[/red]")
-        return
-    rows = filter_repertoire(console, rows, cfg, args)
+        if not rows:
+            console.print("[red]No games left after the --speed filter.[/red]")
+            return
+    if not opponent:
+        rows = filter_repertoire(console, rows, cfg, args)
+    poss = f"{opponent}'s" if opponent else "your"
 
     with httpx.Client(timeout=30.0, headers=explorer.auth_headers()) as client:
         lookup = functools.partial(explorer.masters_lookup, conn, client)
         try:
-            recs, skipped = _records(console, "your games", rows, lookup, s)
+            recs, skipped = _records(console, f"{poss} games", rows, lookup, s)
             white = [r for r in recs if r["color"] == "white"]
             black = [r for r in recs if r["color"] == "black"]
             if args.color != "black":
-                _summary(console, "As White — by your first move", white,
+                _summary(console, f"As White — by {poss} first move", white,
                          lambda r: f"1.{r['sans'][0]}", min_games)
             if args.color != "white":
                 _summary(console, "As Black — by White's first move", black,
                          lambda r: f"vs 1.{r['sans'][0]}", min_games)
-                _summary(console, "As Black — by your reply", black,
+                _summary(console, f"As Black — by {poss} reply", black,
                          lambda r: f"1.{r['sans'][0]} {r['sans'][1]}"
                          if len(r["sans"]) > 1 else None, min_games)
+            weak_hint = "your targets" if opponent else "prep targets"
             for color, colored in (("white", white), ("black", black)):
                 if args.color and color != args.color:
                     continue
                 root = openings.move_tree(colored, min_games=min_games)
-                label = f"As {color.capitalize()}"
+                label = (f"{opponent} as {color.capitalize()}" if opponent
+                         else f"As {color.capitalize()}")
                 if args.tree:
-                    _render(console, f"{label} — your move tree",
+                    _render(console, f"{label} — {poss} move tree",
                             root, lookup, min_games)
                 else:
                     lines = openings.notable_lines(root)
                     _lines_table(
-                        console, f"{label} — weak lines (prep targets)",
+                        console, f"{label} — weak lines ({weak_hint})",
                         [l for l in lines if l["delta"] < 0], lookup, "red",
                     )
                     _lines_table(
@@ -72,11 +92,11 @@ def run_prep(conn, cfg: dict, args) -> None:
             raise
 
     console.print(Panel(
-        "Δ = your score minus the masters expected score; ± is one standard "
-        "error. Only lines whose Δ clears the ± band are listed, and a line "
-        "is omitted when a shorter line already tells the same story. "
-        f"Lines need at least {min_games} games (--min-games); use --tree "
-        "for the full move tree. "
+        f"Δ = {poss} score minus the masters expected score; ± is one "
+        "standard error. Only lines whose Δ clears the ± band are listed, "
+        "and a line is omitted when a shorter line already tells the same "
+        f"story. Lines need at least {min_games} games (--min-games); use "
+        "--tree for the full move tree. "
         f"Unbucketed games: {skipped}.",
         title="How to read this", expand=False,
     ))

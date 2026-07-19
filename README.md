@@ -94,6 +94,10 @@ lines — branches whose Δ clears the ± standard-error band, deduplicated so
 a line is skipped when a shorter one already tells the same story. Weak
 lines are your prep targets. `--tree` shows the full move tree instead.
 
+`prep --opponent <name> --platform <lichess|chesscom>` runs the same report
+over an opponent's games instead of yours — their weak lines are your
+targets. Your `[repertoire]` filter is not applied to opponents.
+
 A `[repertoire]` section in `config.toml` (e.g. `white = ["1. c4"]`,
 `black = ["1. e4 c5", "1. d4 d5"]`) restricts both commands to the lines you
 actually play: games where *you* deviate are dropped, games where the
