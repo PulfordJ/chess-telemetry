@@ -44,18 +44,16 @@ def game_record(
     if game is None:
         return None
     board = game.board()
-    moves = []
-    first_san = None
+    sans = []
     for move in game.mainline_moves():
-        if first_san is None:
-            first_san = board.san(move)
+        sans.append(board.san(move))
         board.push(move)
-        moves.append(move)
-        if len(moves) >= depth_plies:
+        if len(sans) >= depth_plies:
             break
-    if not moves:
+    if not sans:
         return None
-    while len(moves) >= min_anchor_ply:
+    first_san = sans[0]
+    while len(sans) >= min_anchor_ply:
         stats = lookup(board)
         if stats and stats["total"] >= min_master_games and stats["name"]:
             return {
@@ -63,13 +61,14 @@ def game_record(
                 "eco": stats["eco"],
                 "color": color,
                 "first": first_san,
+                "sans": list(sans),
                 "expected": expected_score(
                     stats["white"], stats["draws"], stats["black"], color
                 ),
                 "actual": actual_score(result),
             }
         board.pop()
-        moves.pop()
+        sans.pop()
     stats = lookup(board)  # board is back at the walk-back floor
     if stats:
         return {
@@ -77,12 +76,54 @@ def game_record(
             "eco": None,
             "color": color,
             "first": first_san,
+            "sans": [first_san],
             "expected": expected_score(
                 stats["white"], stats["draws"], stats["black"], color
             ),
             "actual": actual_score(result),
         }
     return None
+
+
+def move_tree(records, *, min_games: int) -> dict:
+    """Aggregate records into a tree over their SAN move prefixes.
+
+    Each node: {"n","actual","expected","delta","children":{san: node}} —
+    actual/expected are means over every game passing through the node
+    (each game keeps the baseline from its own anchor position). Branches
+    with fewer than min_games games are pruned.
+    """
+    root = _tree_node()
+    for r in records:
+        _tree_add(root, r)
+        node = root
+        for san in r["sans"]:
+            node = node["children"].setdefault(san, _tree_node())
+            _tree_add(node, r)
+    if root["n"]:
+        _tree_finish(root, min_games)
+    return root
+
+
+def _tree_node() -> dict:
+    return {"n": 0, "actual": 0.0, "expected": 0.0, "children": {}}
+
+
+def _tree_add(node, r):
+    node["n"] += 1
+    node["actual"] += r["actual"]
+    node["expected"] += r["expected"]
+
+
+def _tree_finish(node, min_games):
+    node["actual"] /= node["n"]
+    node["expected"] /= node["n"]
+    node["delta"] = node["actual"] - node["expected"]
+    node["children"] = {
+        s: c for s, c in node["children"].items() if c["n"] >= min_games
+    }
+    for child in node["children"].values():
+        _tree_finish(child, min_games)
 
 
 def aggregate(records) -> dict[tuple[str, str], dict]:

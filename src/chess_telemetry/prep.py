@@ -1,13 +1,15 @@
-"""Opening-prep report: rank your own openings vs the masters baseline to
-show where prep time is best spent — weakest first."""
+"""Opening-prep report: your openings as a move tree scored against the
+masters baseline, so nested lines (Ruy Lopez under 2.Nf3, etc.) stay nested
+and the weakest branches stand out."""
 
 import functools
 from math import sqrt
 
+import chess
 import httpx
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
+from rich.tree import Tree
 
 from . import db, explorer, openings
 from .suggest import DEFAULTS, _records
@@ -30,74 +32,86 @@ def run_prep(conn, cfg: dict, args) -> None:
         lookup = functools.partial(explorer.masters_lookup, conn, client)
         try:
             recs, skipped = _records(console, "your games", rows, lookup, s)
+            for color, title in (
+                ("white", "As White — your move tree"),
+                ("black", "As Black — your move tree"),
+            ):
+                if args.color and color != args.color:
+                    continue
+                root = openings.move_tree(
+                    [r for r in recs if r["color"] == color], min_games=min_games
+                )
+                _render(console, title, root, lookup, min_games)
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 console.print(f"[red]{explorer.TOKEN_HELP}[/red]")
                 return
             raise
 
-    by_family = openings.aggregate(recs)
-    # Same aggregation keyed by the game's first move instead of the family.
-    by_first = openings.aggregate([{**r, "bucket": r["first"]} for r in recs])
-
-    for color in ("white", "black"):
-        if args.color and color != args.color:
-            continue
-        prefix = "1." if color == "white" else "vs 1."
-        title = (
-            "As White — by your first move" if color == "white"
-            else "As Black — by White's first move"
-        )
-        _table(console, title, "First move",
-               _rows(by_first, color, min_games, prefix))
-        title = f"As {color.capitalize()} — opening families, weakest first"
-        _table(console, title, "Opening",
-               _rows(by_family, color, min_games), eco=True)
-
     console.print(Panel(
-        "Δ = your score minus the masters expected score from the same "
-        "positions; the most negative rows are your best prep targets. "
-        "± is one standard error — a Δ inside its ± band is noise. "
-        f"Rows need at least {min_games} games (--min-games). "
+        "Each line aggregates every game that reached it, deeper lines are "
+        "subsets of their parent. Δ = your score minus the masters expected "
+        "score; ± is one standard error — a Δ inside its ± band is noise. "
+        "Red = weak (prep target), green = strength. Branches with fewer "
+        f"than {min_games} games (--min-games) are folded into their parent. "
         f"Unbucketed games: {skipped}.",
         title="How to read this", expand=False,
     ))
 
 
-def _rows(agg, color: str, min_games: int, prefix: str = ""):
-    out = []
-    for (c, bucket), b in agg.items():
-        if c != color or b["n"] < min_games:
-            continue
-        se = sqrt(b["actual"] * (1 - b["actual"]) / b["n"])
-        out.append({**b, "label": f"{prefix}{bucket}", "se": se})
-    out.sort(key=lambda r: r["delta"])
-    return out
-
-
-def _table(console, title, label_col, rows, eco=False):
-    if not rows:
-        console.print(f"[dim]{title}: no rows with enough games.[/dim]")
+def _render(console, title, root, lookup, min_games):
+    if not root["n"]:
+        console.print(f"[dim]{title}: no games.[/dim]")
         return
-    t = Table(title=title)
-    t.add_column(label_col)
-    if eco:
-        t.add_column("ECO")
-    t.add_column("n", justify="right")
-    t.add_column("Score", justify="right")
-    t.add_column("Masters", justify="right")
-    t.add_column("Δ", justify="right")
-    t.add_column("±", justify="right")
-    for r in rows:
-        style = "red" if r["delta"] < -r["se"] else (
-            "green" if r["delta"] > r["se"] else None
-        )
-        cells = [r["label"]]
-        if eco:
-            cells.append(r["eco"] or "—")
-        cells += [
-            str(r["n"]), f"{r['actual']:.0%}", f"{r['expected']:.0%}",
-            f"{r['delta']:+.2f}", f"{r['se']:.2f}",
-        ]
-        t.add_row(*cells, style=style)
-    console.print(t)
+    tree = Tree(f"[bold]{title}[/bold]  ({root['n']} games)")
+    _add_children(tree, root, chess.Board(), 0, lookup)
+    console.print(tree)
+
+
+def _add_children(branch, node, board, ply, lookup):
+    for san, child in sorted(
+        node["children"].items(), key=lambda kv: kv[1]["delta"]
+    ):
+        line_board = board.copy()
+        parts, at = [], ply
+        _push(parts, at, san)
+        line_board.push_san(san)
+        at += 1
+        # Collapse forced chains: while every game continues with one reply,
+        # show the sequence as a single line instead of one level per ply.
+        while len(child["children"]) == 1:
+            (next_san, next_child), = child["children"].items()
+            if next_child["n"] != child["n"]:
+                break
+            _push(parts, at, next_san)
+            line_board.push_san(next_san)
+            child = next_child
+            at += 1
+        sub = branch.add(_label(" ".join(parts), child, line_board, lookup))
+        _add_children(sub, child, line_board, at, lookup)
+
+
+def _push(parts, ply, san):
+    if ply % 2 == 0:
+        parts.append(f"{ply // 2 + 1}.{san}")
+    elif not parts:
+        parts.append(f"{ply // 2 + 1}...{san}")
+    else:
+        parts.append(san)
+
+
+def _label(moves, node, board, lookup) -> str:
+    se = sqrt(node["actual"] * (1 - node["actual"]) / node["n"])
+    if node["delta"] < -se:
+        style = "red"
+    elif node["delta"] > se:
+        style = "green"
+    else:
+        style = "default"
+    stats = lookup(board)
+    name = f"  [dim]{stats['name']}[/dim]" if stats and stats["name"] else ""
+    return (
+        f"[{style}]{moves}[/{style}]  "
+        f"n={node['n']} {node['actual']:.0%} vs {node['expected']:.0%} "
+        f"[{style}]Δ{node['delta']:+.2f}[/{style}]±{se:.2f}{name}"
+    )

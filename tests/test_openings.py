@@ -63,7 +63,7 @@ def test_game_record_anchors_at_depth():
     )
     assert rec == {
         "bucket": "Italian Game", "eco": "C53", "color": "white",
-        "first": "e4", "expected": 0.6, "actual": 1.0,
+        "first": "e4", "sans": ITALIAN, "expected": 0.6, "actual": 1.0,
     }
 
 
@@ -146,6 +146,31 @@ def test_game_record_transposition_same_bucket():
     rec_a = openings.game_record(make_pgn(a), "white", "win", lookup, **kw)
     rec_b = openings.game_record(make_pgn(b), "white", "win", lookup, **kw)
     assert rec_a["bucket"] == rec_b["bucket"] == "Queen's Gambit Declined"
+
+
+def test_move_tree_aggregates_prefixes():
+    recs = [
+        {"sans": ["e4", "e5", "Nf3"], "actual": 1.0, "expected": 0.55},
+        {"sans": ["e4", "e5", "Bc4"], "actual": 0.0, "expected": 0.55},
+        {"sans": ["e4", "c5"], "actual": 1.0, "expected": 0.55},
+        {"sans": ["d4", "d5"], "actual": 0.5, "expected": 0.55},
+    ]
+    root = openings.move_tree(recs, min_games=2)
+    assert root["n"] == 4
+    e4 = root["children"]["e4"]
+    assert e4["n"] == 3
+    assert abs(e4["actual"] - 2 / 3) < 1e-9
+    e5 = e4["children"]["e5"]
+    assert e5["n"] == 2 and e5["actual"] == 0.5
+    assert abs(e5["delta"] - (0.5 - 0.55)) < 1e-9
+    # Below min_games: 1.d4, 1...c5, and everything under 1...e5 are pruned.
+    assert "d4" not in root["children"]
+    assert "c5" not in e4["children"]
+    assert e5["children"] == {}
+
+
+def test_move_tree_empty():
+    assert openings.move_tree([], min_games=2)["n"] == 0
 
 
 def rec(color, bucket, actual, expected):
