@@ -173,6 +173,33 @@ def test_move_tree_empty():
     assert openings.move_tree([], min_games=2)["n"] == 0
 
 
+def test_notable_lines_significance_and_dedup():
+    # 20 games of 1.e4: 10 wins in e5 lines (strong), 10 losses in c5 lines
+    # (weak). "1.e4" overall is dead even — not notable; each child is.
+    recs = (
+        [{"sans": ["e4", "e5"], "actual": 1.0, "expected": 0.5}] * 10
+        + [{"sans": ["e4", "c5"], "actual": 0.0, "expected": 0.5}] * 10
+    )
+    lines = openings.notable_lines(openings.move_tree(recs, min_games=5))
+    assert [(l["sans"], l["n"]) for l in lines] == [
+        (["e4", "e5"], 10), (["e4", "c5"], 10),
+    ]
+
+    # All wins: "1.e4" itself is notable and its children repeat the same
+    # signal, so only the shallowest line is reported.
+    recs = [{"sans": ["e4", "e5"], "actual": 1.0, "expected": 0.5}] * 10
+    lines = openings.notable_lines(openings.move_tree(recs, min_games=5))
+    assert [l["sans"] for l in lines] == [["e4"]]
+
+    # A significant reversal below a significant ancestor is still reported.
+    recs = (
+        [{"sans": ["e4", "e5"], "actual": 1.0, "expected": 0.5}] * 30
+        + [{"sans": ["e4", "c5"], "actual": 0.0, "expected": 0.5}] * 6
+    )
+    lines = openings.notable_lines(openings.move_tree(recs, min_games=5))
+    assert [l["sans"] for l in lines] == [["e4"], ["e4", "c5"]]
+
+
 def rec(color, bucket, actual, expected):
     return {"color": color, "bucket": bucket, "eco": "C50",
             "actual": actual, "expected": expected}

@@ -48,8 +48,22 @@ def run_prep(conn, cfg: dict, args) -> None:
                 if args.color and color != args.color:
                     continue
                 root = openings.move_tree(colored, min_games=min_games)
-                _render(console, f"As {color.capitalize()} — your move tree",
-                        root, lookup, min_games)
+                label = f"As {color.capitalize()}"
+                if args.tree:
+                    _render(console, f"{label} — your move tree",
+                            root, lookup, min_games)
+                else:
+                    lines = openings.notable_lines(root)
+                    _lines_table(
+                        console, f"{label} — weak lines (prep targets)",
+                        [l for l in lines if l["delta"] < 0], lookup, "red",
+                    )
+                    _lines_table(
+                        console, f"{label} — strong lines",
+                        sorted((l for l in lines if l["delta"] > 0),
+                               key=lambda l: -l["delta"]),
+                        lookup, "green",
+                    )
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 console.print(f"[red]{explorer.TOKEN_HELP}[/red]")
@@ -57,11 +71,11 @@ def run_prep(conn, cfg: dict, args) -> None:
             raise
 
     console.print(Panel(
-        "Each line aggregates every game that reached it, deeper lines are "
-        "subsets of their parent. Δ = your score minus the masters expected "
-        "score; ± is one standard error — a Δ inside its ± band is noise. "
-        "Red = weak (prep target), green = strength. Branches with fewer "
-        f"than {min_games} games (--min-games) are folded into their parent. "
+        "Δ = your score minus the masters expected score; ± is one standard "
+        "error. Only lines whose Δ clears the ± band are listed, and a line "
+        "is omitted when a shorter line already tells the same story. "
+        f"Lines need at least {min_games} games (--min-games); use --tree "
+        "for the full move tree. "
         f"Unbucketed games: {skipped}.",
         title="How to read this", expand=False,
     ))
@@ -104,6 +118,34 @@ def _summary(console, title, recs, keyfn, min_games):
         t.add_row(
             r["label"], str(r["n"]), f"{r['actual']:.0%}", f"{r['expected']:.0%}",
             f"{r['delta']:+.2f}", f"{r['se']:.2f}", style=style,
+        )
+    console.print(t)
+
+
+def _lines_table(console, title, lines, lookup, style):
+    if not lines:
+        console.print(f"[dim]{title}: none beyond the noise band.[/dim]")
+        return
+    t = Table(title=title)
+    t.add_column("Line")
+    t.add_column("Opening")
+    t.add_column("n", justify="right")
+    t.add_column("Score", justify="right")
+    t.add_column("Masters", justify="right")
+    t.add_column("Δ", justify="right")
+    t.add_column("±", justify="right")
+    for l in lines:
+        board = chess.Board()
+        parts = []
+        for i, san in enumerate(l["sans"]):
+            _push(parts, i, san)
+            board.push_san(san)
+        stats = lookup(board)
+        name = stats["name"] if stats and stats["name"] else "—"
+        t.add_row(
+            " ".join(parts), name, str(l["n"]), f"{l['actual']:.0%}",
+            f"{l['expected']:.0%}", f"{l['delta']:+.2f}", f"{l['se']:.2f}",
+            style=style,
         )
     console.print(t)
 

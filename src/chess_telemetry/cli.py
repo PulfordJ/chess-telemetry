@@ -258,6 +258,10 @@ def main():
     p_prep.add_argument("--color", choices=["white", "black"], help="Only one color")
     p_prep.add_argument("--min-games", type=int, help="Minimum games per row")
     p_prep.add_argument("--speed", help="Comma-separated speeds, e.g. rapid,blitz")
+    p_prep.add_argument(
+        "--tree", action="store_true",
+        help="Show the full move tree instead of only notable lines",
+    )
     args = parser.parse_args()
 
     cfg, root = load_config(args.config)

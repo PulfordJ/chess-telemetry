@@ -126,6 +126,36 @@ def _tree_finish(node, min_games):
         _tree_finish(child, min_games)
 
 
+def notable_lines(root) -> list[dict]:
+    """Flatten a move tree to just its significant branches.
+
+    A node is notable when |delta| exceeds one standard error. Nested
+    repeats of the same signal are suppressed: a notable node is skipped
+    when its nearest significant ancestor already points the same way, so
+    each reported line is the shallowest statement of that strength or
+    weakness. Returns [{"sans","n","actual","expected","delta","se"}].
+    """
+    out: list[dict] = []
+    _walk_notable(root, [], None, out)
+    return out
+
+
+def _walk_notable(node, path, inherited_sign, out):
+    for san, child in node["children"].items():
+        sans = path + [san]
+        se = (child["actual"] * (1 - child["actual"]) / child["n"]) ** 0.5
+        sign = None
+        if abs(child["delta"]) > se:
+            sign = 1 if child["delta"] > 0 else -1
+            if sign != inherited_sign:
+                out.append({
+                    "sans": sans, "n": child["n"], "actual": child["actual"],
+                    "expected": child["expected"], "delta": child["delta"],
+                    "se": se,
+                })
+        _walk_notable(child, sans, sign if sign is not None else inherited_sign, out)
+
+
 def aggregate(records) -> dict[tuple[str, str], dict]:
     """(color, bucket) -> {"n","actual","expected","delta","eco"} (means)."""
     out: dict[tuple[str, str], dict] = {}
