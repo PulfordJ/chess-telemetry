@@ -6,7 +6,14 @@ import functools
 import httpx
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 from . import db, explorer, openings
@@ -109,7 +116,19 @@ def _fetch_opponent(conn, console, platform, opponent, s, refresh):
 def _records(console, label, rows, lookup, s):
     """Bucket each game via the masters explorer; returns (records, skipped)."""
     recs, skipped = [], 0
-    with Progress(console=console, transient=True) as progress:
+    # ETA speeds up sharply once the run reaches already-cached positions;
+    # the wide speed window keeps it from swinging on every cache hit.
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TextColumn("ETA"),
+        TimeRemainingColumn(),
+        console=console,
+        transient=True,
+        speed_estimate_period=120,
+    ) as progress:
         task = progress.add_task(f"Bucketing {label}…", total=len(rows))
         for r in rows:
             rec = openings.game_record(

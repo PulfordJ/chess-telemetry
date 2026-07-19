@@ -16,7 +16,8 @@ RATE_LIMIT_SLEEP = 60.0
 TOKEN_HELP = (
     "The Lichess opening explorer requires an API token. Create a personal "
     "token (no scopes needed) at https://lichess.org/account/oauth/token and "
-    "export it as LICHESS_TOKEN."
+    "add it as lichess_token under [accounts] in config.toml (or export it "
+    "as LICHESS_TOKEN)."
 )
 
 

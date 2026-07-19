@@ -1,6 +1,7 @@
 """CLI entry point: chess-telemetry {fetch|analyze|report}."""
 
 import argparse
+import os
 import signal
 import sys
 import time
@@ -254,6 +255,10 @@ def main():
     args = parser.parse_args()
 
     cfg, root = load_config(args.config)
+    # Token from git-ignored config, unless already exported in the shell.
+    token = cfg.get("accounts", {}).get("lichess_token")
+    if token and not os.environ.get("LICHESS_TOKEN"):
+        os.environ["LICHESS_TOKEN"] = token
     conn = db.connect(root / "data" / "telemetry.db")
     try:
         if args.cmd == "fetch":

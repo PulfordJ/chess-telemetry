@@ -12,7 +12,11 @@ confidence and stability tracking over time.
    (`config.toml` is git-ignored so your details stay local). Each platform
    accepts either a single username or a list, e.g.
    `lichess = ["mainaccount", "altaccount"]`, if you play from more than one.
-3. Optionally export `LICHESS_TOKEN` for faster fetching.
+3. Add a personal Lichess API token (no scopes needed, from
+   <https://lichess.org/account/oauth/token>) as `lichess_token` under
+   `[accounts]` in `config.toml`. Required for `suggest` (the opening
+   explorer needs it); also speeds up game fetching. Exporting
+   `LICHESS_TOKEN` works too and takes precedence.
 
 ## Usage
 
@@ -82,9 +86,8 @@ uv run chess-telemetry suggest --opponent rival --platform chesscom
 uv run chess-telemetry suggest --opponent rival --platform lichess --color white --speed blitz
 ```
 
-The explorer API requires a Lichess API token: create a personal token (no
-scopes needed) at <https://lichess.org/account/oauth/token> and export it as
-`LICHESS_TOKEN` (the same variable the fetcher already uses).
+The explorer API requires a Lichess API token — see step 3 of Setup
+(`lichess_token` in `config.toml`, or the `LICHESS_TOKEN` env var).
 
 The first run queries the masters explorer once per unique opening position
 (rate-limited, a few minutes for a full history) and caches every response in

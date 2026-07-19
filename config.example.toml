@@ -9,6 +9,10 @@
 #   lichess = ["mainaccount", "altaccount"]
 lichess = ""
 chesscom = ""
+# Personal Lichess API token (no scopes needed): lichess.org/account/oauth/token
+# Required for `suggest` (opening explorer); also speeds up game fetching.
+# Safe to put here — config.toml is git-ignored. LICHESS_TOKEN env var wins if set.
+lichess_token = ""
 
 [engine]
 # Fixed node budget per position (~depth 20 equivalent). Higher = more accurate, slower.
