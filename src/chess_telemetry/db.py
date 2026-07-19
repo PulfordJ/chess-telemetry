@@ -56,6 +56,37 @@ CREATE TABLE IF NOT EXISTS moves (
     best_move TEXT,
     PRIMARY KEY (game_id, ply)
 );
+
+-- Games of scouted opponents (for `suggest`). Kept apart from `games`:
+-- that table's result/color are from the configured user's POV and it is
+-- keyed (platform, platform_id) only. Here result/color are from the
+-- scouted opponent's POV.
+CREATE TABLE IF NOT EXISTS opponent_games (
+    id INTEGER PRIMARY KEY,
+    platform TEXT NOT NULL,
+    platform_id TEXT NOT NULL,
+    username TEXT NOT NULL,       -- the scouted opponent (lowercased)
+    played_at TEXT NOT NULL,
+    speed TEXT,
+    rated INTEGER,
+    color TEXT,
+    result TEXT,
+    rating INTEGER,
+    pgn TEXT NOT NULL,
+    UNIQUE (platform, platform_id, username)
+);
+CREATE INDEX IF NOT EXISTS idx_opp_games_user ON opponent_games (platform, username);
+
+-- Lichess masters opening-explorer cache: one row per position, ever.
+CREATE TABLE IF NOT EXISTS explorer_cache (
+    epd TEXT PRIMARY KEY,
+    white INTEGER NOT NULL,
+    draws INTEGER NOT NULL,
+    black INTEGER NOT NULL,
+    opening_eco TEXT,
+    opening_name TEXT,
+    fetched_at TEXT NOT NULL
+);
 """
 
 
@@ -89,6 +120,66 @@ def insert_game(conn: sqlite3.Connection, g: dict) -> bool:
         g,
     )
     return cur.rowcount > 0
+
+
+def insert_opponent_game(conn: sqlite3.Connection, g: dict) -> bool:
+    """Insert a scouted opponent's game if unseen. Returns True if newly inserted.
+
+    Accepts the same dict the fetchers produce; `g["username"]` must be set to
+    the scouted opponent, and color/result/user_rating are their POV values.
+    """
+    cur = conn.execute(
+        """INSERT OR IGNORE INTO opponent_games
+           (platform, platform_id, username, played_at, speed, rated,
+            color, result, rating, pgn)
+           VALUES (:platform, :platform_id, :username, :played_at, :speed,
+                   :rated, :color, :result, :user_rating, :pgn)""",
+        g,
+    )
+    return cur.rowcount > 0
+
+
+def opponent_game_rows(conn, platform: str, username: str):
+    return conn.execute(
+        "SELECT * FROM opponent_games WHERE platform=? AND username=? "
+        "ORDER BY played_at DESC",
+        (platform, username.lower()),
+    ).fetchall()
+
+
+def opponent_game_count(conn, platform: str, username: str) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM opponent_games WHERE platform=? AND username=?",
+        (platform, username.lower()),
+    ).fetchone()[0]
+
+
+def user_game_rows(conn):
+    """All user games (both platforms), newest first, for opening stats."""
+    return conn.execute(
+        "SELECT platform, color, result, pgn, played_at, speed "
+        "FROM games ORDER BY played_at DESC"
+    ).fetchall()
+
+
+def get_explorer_cache(conn, epd: str):
+    return conn.execute(
+        "SELECT white, draws, black, opening_eco, opening_name "
+        "FROM explorer_cache WHERE epd=?",
+        (epd,),
+    ).fetchone()
+
+
+def put_explorer_cache(conn, epd, white, draws, black, eco, name):
+    conn.execute(
+        "INSERT OR IGNORE INTO explorer_cache "
+        "(epd, white, draws, black, opening_eco, opening_name, fetched_at) "
+        "VALUES (?,?,?,?,?,?,?)",
+        (epd, white, draws, black, eco, name,
+         datetime.now(timezone.utc).isoformat()),
+    )
+    # Commit per position so an interrupted first run keeps its progress.
+    conn.commit()
 
 
 def get_cached_eval(conn, epd: str, engine: str, nodes: int):

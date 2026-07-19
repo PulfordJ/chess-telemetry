@@ -13,7 +13,7 @@ from statistics import mean, median
 from rich.console import Console
 
 from . import analyze as analyze_mod
-from . import db, drills, report
+from . import db, drills, report, suggest
 from .engine import CacheOnlyEngine, Engine
 from .fetch import chesscom, lichess
 
@@ -233,6 +233,24 @@ def main():
              "(centipawns, default -300 = 3 pawns down)",
     )
     p_drills.add_argument("--output", default="data/drills.pgn", help="Output PGN path")
+    p_suggest = sub.add_parser(
+        "suggest", help="Suggest openings to aim for against a specific opponent"
+    )
+    p_suggest.add_argument("--opponent", required=True, help="Opponent username")
+    p_suggest.add_argument(
+        "--platform", required=True, choices=["lichess", "chesscom"],
+        help="Platform the opponent plays on",
+    )
+    p_suggest.add_argument("--color", choices=["white", "black"], help="Only one color")
+    p_suggest.add_argument(
+        "--min-games", type=int,
+        help="Minimum games per opening for both you and the opponent",
+    )
+    p_suggest.add_argument("--top", type=int, help="Max openings per table")
+    p_suggest.add_argument("--speed", help="Comma-separated speeds, e.g. rapid,blitz")
+    p_suggest.add_argument(
+        "--refresh", action="store_true", help="Re-fetch the opponent's games"
+    )
     args = parser.parse_args()
 
     cfg, root = load_config(args.config)
@@ -252,6 +270,8 @@ def main():
             cmd_status(conn, cfg)
         elif args.cmd == "drills":
             cmd_drills(conn, cfg, args)
+        elif args.cmd == "suggest":
+            suggest.run_suggest(conn, cfg, args)
     finally:
         conn.close()
 

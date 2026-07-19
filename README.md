@@ -28,6 +28,7 @@ uv run chess-telemetry status         # analysis progress + ETA
 uv run chess-telemetry report         # study-focus report (--window N)
 uv run chess-telemetry report --speed rapid,blitz   # slice by time control
 uv run chess-telemetry drills         # export your blunders as a puzzle PGN
+uv run chess-telemetry suggest --opponent rival --platform chesscom  # scout an opponent
 ```
 
 ### Checklist mapping
@@ -66,6 +67,30 @@ while keeping ACPL over all moves for comparability with other sites.
 
 Engine evaluations are cached in SQLite (`data/telemetry.db`), so re-analysis
 and metric changes are cheap. `analyze` is safe to interrupt and resume.
+
+### Opponent scouting
+
+`suggest` recommends which openings to aim for against a specific opponent:
+it downloads their public games (kept separate from yours), buckets both
+players' games into opening families via the Lichess masters opening explorer,
+and ranks openings where *you* score above the masters expected score while
+*they* score below it — matched by opposite color (your White vs their Black
+and vice versa).
+
+```sh
+uv run chess-telemetry suggest --opponent rival --platform chesscom
+uv run chess-telemetry suggest --opponent rival --platform lichess --color white --speed blitz
+```
+
+The explorer API requires a Lichess API token: create a personal token (no
+scopes needed) at <https://lichess.org/account/oauth/token> and export it as
+`LICHESS_TOKEN` (the same variable the fetcher already uses).
+
+The first run queries the masters explorer once per unique opening position
+(rate-limited, a few minutes for a full history) and caches every response in
+SQLite, so later runs — against any opponent — are near-instant and offline
+for known positions. `--refresh` re-fetches the opponent's games. Tuning knobs
+live under `[suggest]` in `config.toml`.
 
 ### Example output
 

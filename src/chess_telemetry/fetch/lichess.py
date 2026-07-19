@@ -12,7 +12,8 @@ EXPORT_URL = "https://lichess.org/api/games/user/{username}"
 PERF_TYPES = "ultraBullet,bullet,blitz,rapid,classical,correspondence"
 
 
-def fetch(conn, username: str) -> int:
+def fetch(conn, username: str, *, insert=None, max_games: int | None = None) -> int:
+    insert = insert or db.insert_game
     headers = {"Accept": "application/x-ndjson"}
     token = os.environ.get("LICHESS_TOKEN")
     if token:
@@ -20,8 +21,11 @@ def fetch(conn, username: str) -> int:
     params = {
         "pgnInJson": "true",
         "moves": "true",
+        "opening": "true",
         "perfType": PERF_TYPES,
     }
+    if max_games:
+        params["max"] = str(max_games)
     new = 0
     with httpx.Client(timeout=httpx.Timeout(30.0, read=None)) as client:
         with client.stream(
@@ -32,7 +36,7 @@ def fetch(conn, username: str) -> int:
                 if not line.strip():
                     continue
                 game = _parse(json.loads(line), username)
-                if game and db.insert_game(conn, game):
+                if game and insert(conn, game):
                     new += 1
     conn.commit()
     return new

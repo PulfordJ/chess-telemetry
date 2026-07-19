@@ -45,3 +45,19 @@ stale_days = 180
 # ranking study focus — what you do at -3 isn't the leak that lost the game.
 # ACPL is always computed over all moves, to stay comparable with other sites.
 min_eval = -300
+
+[suggest]
+# Opening anchor: replay each game this many plies, then look the position up
+# in the Lichess masters explorer (walking back a ply while the masters DB has
+# fewer than min_master_games there).
+depth_plies = 10
+min_master_games = 100
+# Minimum games per opening, for both you and the opponent
+min_games = 5
+# Max openings shown per color table
+top = 10
+# Small-sample shrinkage for the edge ranking (higher = more conservative)
+shrink_k = 5
+# How much of the opponent's history to download
+opponent_max_games = 500   # lichess cap
+opponent_months = 12       # chess.com archive months

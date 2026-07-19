@@ -21,11 +21,14 @@ DRAW_RESULTS = {
 }
 
 
-def fetch(conn, username: str) -> int:
+def fetch(conn, username: str, *, insert=None, months: int | None = None) -> int:
+    insert = insert or db.insert_game
     with httpx.Client(headers=HEADERS, timeout=60.0) as client:
         resp = client.get(ARCHIVES_URL.format(username=username))
         resp.raise_for_status()
         archives = resp.json()["archives"]
+        if months:
+            archives = archives[-months:]
 
         def get_month(url: str) -> list[dict]:
             r = client.get(url)
@@ -39,7 +42,7 @@ def fetch(conn, username: str) -> int:
     for games in months:
         for g in games:
             parsed = _parse(g, username)
-            if parsed and db.insert_game(conn, parsed):
+            if parsed and insert(conn, parsed):
                 new += 1
     conn.commit()
     return new
