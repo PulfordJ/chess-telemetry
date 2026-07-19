@@ -63,7 +63,7 @@ def test_game_record_anchors_at_depth():
     )
     assert rec == {
         "bucket": "Italian Game", "eco": "C53", "color": "white",
-        "expected": 0.6, "actual": 1.0,
+        "first": "e4", "expected": 0.6, "actual": 1.0,
     }
 
 

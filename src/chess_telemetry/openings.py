@@ -62,6 +62,7 @@ def game_record(
                 "bucket": bucket_name(stats["name"]),
                 "eco": stats["eco"],
                 "color": color,
+                "first": first_san,
                 "expected": expected_score(
                     stats["white"], stats["draws"], stats["black"], color
                 ),
@@ -75,6 +76,7 @@ def game_record(
             "bucket": f"Irregular ({first_san})",
             "eco": None,
             "color": color,
+            "first": first_san,
             "expected": expected_score(
                 stats["white"], stats["draws"], stats["black"], color
             ),

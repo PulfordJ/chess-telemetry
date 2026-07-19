@@ -14,7 +14,7 @@ from statistics import mean, median
 from rich.console import Console
 
 from . import analyze as analyze_mod
-from . import db, drills, report, suggest
+from . import db, drills, prep, report, suggest
 from .engine import CacheOnlyEngine, Engine
 from .fetch import chesscom, lichess
 
@@ -252,6 +252,12 @@ def main():
     p_suggest.add_argument(
         "--refresh", action="store_true", help="Re-fetch the opponent's games"
     )
+    p_prep = sub.add_parser(
+        "prep", help="Rank your own openings vs the masters baseline (prep targets)"
+    )
+    p_prep.add_argument("--color", choices=["white", "black"], help="Only one color")
+    p_prep.add_argument("--min-games", type=int, help="Minimum games per row")
+    p_prep.add_argument("--speed", help="Comma-separated speeds, e.g. rapid,blitz")
     args = parser.parse_args()
 
     cfg, root = load_config(args.config)
@@ -277,6 +283,8 @@ def main():
             cmd_drills(conn, cfg, args)
         elif args.cmd == "suggest":
             suggest.run_suggest(conn, cfg, args)
+        elif args.cmd == "prep":
+            prep.run_prep(conn, cfg, args)
     finally:
         conn.close()
 

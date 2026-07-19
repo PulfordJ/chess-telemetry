@@ -33,6 +33,7 @@ uv run chess-telemetry report         # study-focus report (--window N)
 uv run chess-telemetry report --speed rapid,blitz   # slice by time control
 uv run chess-telemetry drills         # export your blunders as a puzzle PGN
 uv run chess-telemetry suggest --opponent rival --platform chesscom  # scout an opponent
+uv run chess-telemetry prep           # rank your own openings, weakest first
 ```
 
 ### Checklist mapping
@@ -85,6 +86,11 @@ and vice versa).
 uv run chess-telemetry suggest --opponent rival --platform chesscom
 uv run chess-telemetry suggest --opponent rival --platform lichess --color white --speed blitz
 ```
+
+`prep` runs the same opening analysis over just your games, ranked weakest
+first — two views per color: by first move (your 1.e4 vs 1.d4 as White;
+facing 1.e4/1.d4/1.c4 as Black) and by opening family. Negative-Δ rows that
+clear their standard-error band are where opening study pays off most.
 
 The explorer API requires a Lichess API token — see step 3 of Setup
 (`lichess_token` in `config.toml`, or the `LICHESS_TOKEN` env var).
