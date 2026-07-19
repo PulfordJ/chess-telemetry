@@ -87,10 +87,12 @@ uv run chess-telemetry suggest --opponent rival --platform chesscom
 uv run chess-telemetry suggest --opponent rival --platform lichess --color white --speed blitz
 ```
 
-`prep` runs the same opening analysis over just your games, ranked weakest
-first — two views per color: by first move (your 1.e4 vs 1.d4 as White;
-facing 1.e4/1.d4/1.c4 as Black) and by opening family. Negative-Δ rows that
-clear their standard-error band are where opening study pays off most.
+`prep` runs the same opening analysis over just your games, weakest lines
+first: summary tables (as White by your first move; as Black by White's
+first move and by your reply, e.g. `1.e4 c5` vs `1.e4 e5`) followed by a
+full move tree per color, where each node aggregates every game that
+reached it and thin branches fold into their parent. Red rows — negative Δ
+beyond the ± standard-error band — are where opening study pays off most.
 
 The explorer API requires a Lichess API token — see step 3 of Setup
 (`lichess_token` in `config.toml`, or the `LICHESS_TOKEN` env var).

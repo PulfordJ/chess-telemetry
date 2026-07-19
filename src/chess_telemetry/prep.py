@@ -9,6 +9,7 @@ import chess
 import httpx
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 from rich.tree import Tree
 
 from . import db, explorer, openings
@@ -32,16 +33,23 @@ def run_prep(conn, cfg: dict, args) -> None:
         lookup = functools.partial(explorer.masters_lookup, conn, client)
         try:
             recs, skipped = _records(console, "your games", rows, lookup, s)
-            for color, title in (
-                ("white", "As White — your move tree"),
-                ("black", "As Black — your move tree"),
-            ):
+            white = [r for r in recs if r["color"] == "white"]
+            black = [r for r in recs if r["color"] == "black"]
+            if args.color != "black":
+                _summary(console, "As White — by your first move", white,
+                         lambda r: f"1.{r['sans'][0]}", min_games)
+            if args.color != "white":
+                _summary(console, "As Black — by White's first move", black,
+                         lambda r: f"vs 1.{r['sans'][0]}", min_games)
+                _summary(console, "As Black — by your reply", black,
+                         lambda r: f"1.{r['sans'][0]} {r['sans'][1]}"
+                         if len(r["sans"]) > 1 else None, min_games)
+            for color, colored in (("white", white), ("black", black)):
                 if args.color and color != args.color:
                     continue
-                root = openings.move_tree(
-                    [r for r in recs if r["color"] == color], min_games=min_games
-                )
-                _render(console, title, root, lookup, min_games)
+                root = openings.move_tree(colored, min_games=min_games)
+                _render(console, f"As {color.capitalize()} — your move tree",
+                        root, lookup, min_games)
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 console.print(f"[red]{explorer.TOKEN_HELP}[/red]")
@@ -57,6 +65,47 @@ def run_prep(conn, cfg: dict, args) -> None:
         f"Unbucketed games: {skipped}.",
         title="How to read this", expand=False,
     ))
+
+
+def _summary(console, title, recs, keyfn, min_games):
+    groups: dict[str, dict] = {}
+    for r in recs:
+        key = keyfn(r)
+        if key is None:
+            continue
+        g = groups.setdefault(key, {"n": 0, "actual": 0.0, "expected": 0.0})
+        g["n"] += 1
+        g["actual"] += r["actual"]
+        g["expected"] += r["expected"]
+    rows = []
+    for key, g in groups.items():
+        if g["n"] < min_games:
+            continue
+        actual, expected = g["actual"] / g["n"], g["expected"] / g["n"]
+        rows.append({
+            "label": key, "n": g["n"], "actual": actual, "expected": expected,
+            "delta": actual - expected,
+            "se": sqrt(actual * (1 - actual) / g["n"]),
+        })
+    if not rows:
+        return
+    rows.sort(key=lambda r: r["delta"])
+    t = Table(title=title)
+    t.add_column("Moves")
+    t.add_column("n", justify="right")
+    t.add_column("Score", justify="right")
+    t.add_column("Masters", justify="right")
+    t.add_column("Δ", justify="right")
+    t.add_column("±", justify="right")
+    for r in rows:
+        style = "red" if r["delta"] < -r["se"] else (
+            "green" if r["delta"] > r["se"] else None
+        )
+        t.add_row(
+            r["label"], str(r["n"]), f"{r['actual']:.0%}", f"{r['expected']:.0%}",
+            f"{r['delta']:+.2f}", f"{r['se']:.2f}", style=style,
+        )
+    console.print(t)
 
 
 def _render(console, title, root, lookup, min_games):
