@@ -22,6 +22,7 @@ from .fetch import chesscom, lichess
 DEFAULTS = {
     "depth_plies": 10,
     "min_master_games": 100,
+    "min_anchor_ply": 1,
     "min_games": 5,
     "top": 10,
     "shrink_k": 5,
@@ -135,6 +136,7 @@ def _records(console, label, rows, lookup, s):
                 r["pgn"], r["color"], r["result"], lookup,
                 depth_plies=s["depth_plies"],
                 min_master_games=s["min_master_games"],
+                min_anchor_ply=s["min_anchor_ply"],
             )
             if rec:
                 recs.append(rec)

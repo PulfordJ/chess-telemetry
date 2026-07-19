@@ -28,25 +28,33 @@ def actual_score(result: str) -> float:
 
 def game_record(
     pgn: str, color: str, result: str, lookup, *,
-    depth_plies: int, min_master_games: int, min_anchor_ply: int = 4,
+    depth_plies: int, min_master_games: int, min_anchor_ply: int = 1,
 ) -> dict | None:
     """Bucket one game by its anchor position in the masters explorer.
 
     Replays to `depth_plies` (or the game's end if shorter), then walks back
     a ply at a time until the masters DB has at least `min_master_games` at
-    the position and names the opening. Returns None if the game leaves book
-    before `min_anchor_ply` — the caller counts those as unbucketed.
+    the position and names the opening. Every first-move position is named,
+    so nearly every game buckets somewhere — coarsely (e.g. "King's Pawn
+    Game") when it leaves theory early. Games too odd even for that fall
+    into an ECO-less "Irregular (<first move>)" bucket, with the baseline
+    taken from the starting position; only moveless PGNs return None.
     """
     game = chess.pgn.read_game(io.StringIO(pgn))
     if game is None:
         return None
     board = game.board()
     moves = []
+    first_san = None
     for move in game.mainline_moves():
+        if first_san is None:
+            first_san = board.san(move)
         board.push(move)
         moves.append(move)
         if len(moves) >= depth_plies:
             break
+    if not moves:
+        return None
     while len(moves) >= min_anchor_ply:
         stats = lookup(board)
         if stats and stats["total"] >= min_master_games and stats["name"]:
@@ -61,6 +69,17 @@ def game_record(
             }
         board.pop()
         moves.pop()
+    stats = lookup(board)  # board is back at the walk-back floor
+    if stats:
+        return {
+            "bucket": f"Irregular ({first_san})",
+            "eco": None,
+            "color": color,
+            "expected": expected_score(
+                stats["white"], stats["draws"], stats["black"], color
+            ),
+            "actual": actual_score(result),
+        }
     return None
 
 

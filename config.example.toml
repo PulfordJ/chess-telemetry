@@ -56,6 +56,10 @@ min_eval = -300
 # fewer than min_master_games there).
 depth_plies = 10
 min_master_games = 100
+# Walk-back floor: 1 buckets nearly every game (coarsely — e.g. "King's Pawn
+# Game" — when it leaves theory early); raise to e.g. 4 to instead drop games
+# that are out of book before move 2.
+min_anchor_ply = 1
 # Minimum games per opening, for both you and the opponent
 min_games = 5
 # Max openings shown per color table

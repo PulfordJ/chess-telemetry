@@ -89,6 +89,40 @@ def test_game_record_unbucketed_when_always_thin():
     assert rec is None
 
 
+def test_game_record_coarse_bucket_when_out_of_book_early():
+    # Out of theory by move 3; anchor walks all the way back to 1. e4 e5.
+    weird = ["e4", "e5", "Qh5", "Nc6", "Qxe5+", "Nxe5"]
+    table = {
+        epd_after(weird[:2]): masters(6000, 3000, 2000, name="King's Pawn Game", eco="C20")
+    }
+    rec = openings.game_record(
+        make_pgn(weird), "black", "win", stub_lookup(table),
+        depth_plies=10, min_master_games=100,
+    )
+    assert rec["bucket"] == "King's Pawn Game"
+    assert rec["eco"] == "C20"
+
+
+def test_game_record_irregular_fallback_without_eco():
+    # Nothing named anywhere; baseline comes from the starting position.
+    start = chess.Board().epd()
+    table = {start: masters(5500, 3000, 4000, name=None, eco=None)}
+    rec = openings.game_record(
+        make_pgn(["Na3", "e5", "h4", "d5"]), "white", "loss", stub_lookup(table),
+        depth_plies=10, min_master_games=100,
+    )
+    assert rec["bucket"] == "Irregular (Na3)"
+    assert rec["eco"] is None
+    assert rec["expected"] == 0.56  # (5500 + 1500) / 12500
+    assert rec["actual"] == 0.0
+
+
+def test_game_record_moveless_pgn():
+    assert openings.game_record(
+        "*", "white", "win", stub_lookup({}), depth_plies=10, min_master_games=100
+    ) is None
+
+
 def test_game_record_short_game_anchors_at_end():
     short = ITALIAN[:6]
     lookup = stub_lookup({epd_after(short): masters(400, 400, 200)})
