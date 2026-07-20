@@ -1,7 +1,9 @@
 """Opponent-specific opening suggestions: openings where you beat the masters
 baseline and the scouted opponent falls short of it."""
 
+import argparse
 import functools
+from datetime import datetime
 
 import httpx
 from rich.console import Console
@@ -53,6 +55,11 @@ def run_suggest(conn, cfg: dict, args) -> None:
     if speeds:
         user_rows = [r for r in user_rows if r["speed"] in speeds]
         opp_rows = [r for r in opp_rows if r["speed"] in speeds]
+    user_rows = filter_window(user_rows, args.since, args.last)
+    opp_rows = filter_window(opp_rows, args.since, args.last)
+    if not opp_rows:
+        console.print("[red]No games left after the --since/--last filter.[/red]")
+        return
     user_rows = filter_repertoire(console, user_rows, cfg, args)
 
     with httpx.Client(timeout=30.0, headers=explorer.auth_headers()) as client:
@@ -93,6 +100,30 @@ def run_suggest(conn, cfg: dict, args) -> None:
         f"{user_skipped} of your games, {opp_skipped} of theirs.",
         title="How to read this", expand=False,
     ))
+
+
+def since_date(value: str) -> str:
+    """argparse type for --since: parse a YYYY-MM-DD date and return it in
+    canonical zero-padded form, so lexical comparison against the ISO
+    played_at timestamps stays correct even for inputs like 2026-5-1."""
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"--since must be a date like 2026-05-01, not {value!r}"
+        )
+    return parsed.strftime("%Y-%m-%d")
+
+
+def filter_window(rows, since: str | None, last: int | None):
+    """Restrict games to a recency window. Rows arrive newest-first (sorted by
+    played_at), so `since` (inclusive, YYYY-MM-DD) drops older games and `last`
+    keeps only the most recent N that remain."""
+    if since:
+        rows = [r for r in rows if r["played_at"][:10] >= since]
+    if last is not None:
+        rows = rows[:last]
+    return rows
 
 
 def filter_repertoire(console, rows, cfg, args):

@@ -250,6 +250,14 @@ def main():
     p_suggest.add_argument("--top", type=int, help="Max openings per table")
     p_suggest.add_argument("--speed", help="Comma-separated speeds, e.g. rapid,blitz")
     p_suggest.add_argument(
+        "--since", type=suggest.since_date, metavar="YYYY-MM-DD",
+        help="Only games on/after this date (both sides)",
+    )
+    p_suggest.add_argument(
+        "--last", type=int, metavar="N",
+        help="Only the most recent N games per side (after --speed/--since)",
+    )
+    p_suggest.add_argument(
         "--refresh", action="store_true", help="Re-fetch the opponent's games"
     )
     p_suggest.add_argument(
@@ -272,6 +280,14 @@ def main():
     p_prep.add_argument("--color", choices=["white", "black"], help="Only one color")
     p_prep.add_argument("--min-games", type=int, help="Minimum games per row")
     p_prep.add_argument("--speed", help="Comma-separated speeds, e.g. rapid,blitz")
+    p_prep.add_argument(
+        "--since", type=suggest.since_date, metavar="YYYY-MM-DD",
+        help="Only games on/after this date",
+    )
+    p_prep.add_argument(
+        "--last", type=int, metavar="N",
+        help="Only the most recent N games (after --speed/--since)",
+    )
     p_prep.add_argument(
         "--tree", action="store_true",
         help="Show the full move tree instead of only notable lines",

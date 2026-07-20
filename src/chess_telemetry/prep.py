@@ -13,7 +13,13 @@ from rich.table import Table
 from rich.tree import Tree
 
 from . import db, explorer, openings
-from .suggest import DEFAULTS, _fetch_opponent, _records, filter_repertoire
+from .suggest import (
+    DEFAULTS,
+    _fetch_opponent,
+    _records,
+    filter_repertoire,
+    filter_window,
+)
 
 
 def run_prep(conn, cfg: dict, args) -> None:
@@ -44,6 +50,10 @@ def run_prep(conn, cfg: dict, args) -> None:
         if not rows:
             console.print("[red]No games left after the --speed filter.[/red]")
             return
+    rows = filter_window(rows, args.since, args.last)
+    if not rows:
+        console.print("[red]No games left after the --since/--last filter.[/red]")
+        return
     if not opponent:
         rows = filter_repertoire(console, rows, cfg, args)
     poss = f"{opponent}'s" if opponent else "your"

@@ -103,6 +103,15 @@ A `[repertoire]` section in `config.toml` (e.g. `white = ["1. c4"]`,
 actually play: games where *you* deviate are dropped, games where the
 *opponent* deviates are kept. `--all-lines` disables the filter for a run.
 
+A stored history blends together a player's whole record, which can span a big
+rating climb and mix time controls, so old games may not reflect current
+weaknesses. Scope a run to what you'll actually face: `--speed rapid` first
+(the biggest correction, since strength often differs sharply by time
+control), then `--since 2026-05-01` to drop stale games and/or `--last 50` to
+keep only the most recent N (applied after `--speed`/`--since`). In `suggest`
+both windows apply to each side; watch the `n`/`±` columns, as samples shrink
+fast once filtered.
+
 The explorer API requires a Lichess API token — see step 3 of Setup
 (`lichess_token` in `config.toml`, or the `LICHESS_TOKEN` env var).
 
